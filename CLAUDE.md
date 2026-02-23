@@ -40,6 +40,24 @@ Sub-agents are defined in `.claude/agents/` with specialized roles.
 - `frontend/` -- Next.js chat UI
 - `mcp/` -- MCP server configuration for Claude Desktop
 - `data/` -- Index mappings and data schemas
+- `docs/plans/` -- master design doc and full implementation plan (with complete JSON payloads)
+- `docs/research/` -- hackathon rules, API docs, Agent Builder capabilities summary, forum discussions
+
+## Reference Docs (read before implementation)
+- `docs/plans/2026-02-23-incident-cortex-implementation.md` -- **THE implementation plan** with full JSON for all 10 tools, 4 agents, and workflow definitions. This is the primary reference for building.
+- `docs/plans/2026-02-23-incident-cortex-design.md` -- master design doc with architecture, demo script, judging alignment
+- `docs/research/AGENT-BUILDER-CAPABILITIES-SUMMARY.md` -- consolidated Agent Builder API capabilities
+- `docs/research/kibana-api.md` -- Kibana REST API endpoints for Agent Builder
+- `docs/research/rules-full.md` -- hackathon rules and judging criteria
+
+## Hackathon Context
+- **Deadline**: Feb 27, 2026 @ 1pm EST
+- **Prizes**: $10K/$5K/$3K + 4x$500
+- **Judging**: Technical Execution 30%, Impact & Wow Factor 30%, Demo Quality 30%, Social 10%
+- **Must use**: Elastic Agent Builder on Elasticsearch Serverless
+- **Key features to showcase**: ES|QL custom tools, Elastic Workflows, A2A protocol, MCP server
+- **All data must be synthetic** (no real PII)
+- **License**: MIT (required by hackathon)
 
 ## Environment Variables (see .env.example)
 - `KIBANA_URL` -- Elastic Cloud Kibana endpoint
