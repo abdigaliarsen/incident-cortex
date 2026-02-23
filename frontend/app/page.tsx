@@ -10,7 +10,7 @@ import { ChatPanel } from "@/components/panels/ChatPanel";
 import { DetailsPanel } from "@/components/panels/DetailsPanel";
 
 export default function Home() {
-  const { messages, loading, activeAgent, setActiveAgent, sendMessage } =
+  const { messages, loading, activeAgent, sendMessage, streamingStatus } =
     useChat();
   const { view, showTimeline, showTool, showAgent } = useDetailsPanel();
 
@@ -70,6 +70,7 @@ export default function Home() {
         messages={messages}
         loading={loading}
         activeAgent={activeAgent}
+        streamingStatus={streamingStatus}
         onSend={sendMessage}
         onToolClick={(toolId) => {
           const allToolCalls = messages.flatMap((m) => m.toolCalls || []);

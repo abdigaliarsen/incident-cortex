@@ -1,12 +1,27 @@
-import type { AgentId } from "@/lib/types";
-import { AGENTS } from "@/lib/constants";
+import type { AgentId, StreamingStatus } from "@/lib/types";
+import { AGENTS, TOOL_LABELS } from "@/lib/constants";
 
 interface TypingIndicatorProps {
   agentId: AgentId;
+  streamingStatus?: StreamingStatus;
 }
 
-export function TypingIndicator({ agentId }: TypingIndicatorProps) {
+export function TypingIndicator({ agentId, streamingStatus }: TypingIndicatorProps) {
   const agent = AGENTS[agentId];
+
+  let statusText = `${agent.shortName} is investigating`;
+  if (streamingStatus?.currentPhase === "reasoning") {
+    statusText = "Reasoning...";
+  } else if (
+    streamingStatus?.currentPhase === "calling" &&
+    streamingStatus.currentTool
+  ) {
+    const label =
+      TOOL_LABELS[streamingStatus.currentTool] ?? streamingStatus.currentTool;
+    statusText = `Calling ${label}...`;
+  } else if (streamingStatus?.currentPhase === "streaming") {
+    statusText = "Writing response...";
+  }
 
   return (
     <div data-testid="typing-indicator" className="flex items-center gap-3 px-4 py-2">
@@ -17,7 +32,7 @@ export function TypingIndicator({ agentId }: TypingIndicatorProps) {
         {agent.symbol}
       </div>
       <div className="flex items-center gap-1">
-        <span className="text-xs text-[#98A2B3]">{agent.shortName} is investigating</span>
+        <span className="text-xs text-[#98A2B3]">{statusText}</span>
         <span className="flex gap-0.5">
           {[0, 1, 2].map((i) => (
             <span
