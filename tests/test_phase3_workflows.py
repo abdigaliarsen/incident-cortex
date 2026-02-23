@@ -81,3 +81,57 @@ class TestRemediationSimulation:
             body={"query": {"term": {"incident.id": "TEST-001"}}},
         )
         assert result["hits"]["total"]["value"] > 0
+
+    def test_rollback_deployment_creates_notification(self, es_client):
+        """Verify rollback action writes to notifications index."""
+        es_client.index(
+            index="ic-notifications",
+            document={
+                "@timestamp": "2026-02-22T15:01:00.000Z",
+                "type": "deployment_rollback",
+                "action": "rollback",
+                "deployment.service": "payment-service",
+                "deployment.version": "v2.3.9",
+                "message": "Rollback initiated: payment-service to v2.3.9",
+            },
+            refresh="wait_for",
+        )
+        result = es_client.search(
+            index="ic-notifications",
+            body={"query": {"term": {"type": "deployment_rollback"}}},
+        )
+        assert result["hits"]["total"]["value"] > 0
+
+    def test_block_ip_creates_notification(self, es_client):
+        """Verify IP block action writes to notifications index."""
+        es_client.index(
+            index="ic-notifications",
+            document={
+                "@timestamp": "2026-02-22T15:01:00.000Z",
+                "type": "ip_block",
+                "action": "block",
+                "target.ip": "203.0.113.42",
+                "message": "IP blocked: 203.0.113.42 - Brute force attack",
+            },
+            refresh="wait_for",
+        )
+        result = es_client.search(
+            index="ic-notifications",
+            body={"query": {"term": {"type": "ip_block"}}},
+        )
+        assert result["hits"]["total"]["value"] > 0
+
+    def test_remediation_actions_queryable_via_esql(self, es_client):
+        """Verify remediation documents are queryable via ES|QL."""
+        result = es_client.esql.query(
+            query=(
+                'FROM ic-notifications '
+                '| WHERE type IN ("slack_notification", "deployment_rollback", "ip_block", "jira_ticket") '
+                '| STATS action_count = COUNT(*) BY type '
+                '| SORT action_count DESC'
+            ),
+            format="json",
+        )
+        columns = result.get("columns", [])
+        col_names = [c["name"] for c in columns]
+        assert "type" in col_names, f"Expected type column, got: {col_names}"

@@ -41,10 +41,10 @@
   {
     "id": "ic-detect-metric-anomaly",
     "type": "esql",
-    "description": "Detect CPU, memory, or latency anomalies on a specific host. Use this when investigating infrastructure performance issues. Returns metric values bucketed by 5-minute intervals with high values highlighted.",
+    "description": "Detect CPU and latency anomalies for a host using ES|QL INLINE STATS for single-query outlier detection. Flags 5-minute buckets where max CPU exceeds 1.5x overall average or latency exceeds 2x average.",
     "tags": ["incident-cortex", "metrics"],
     "configuration": {
-      "query": "FROM ic-metrics | WHERE host.name == ?hostName AND @timestamp >= ?startTime AND @timestamp <= ?endTime | STATS avg_cpu = AVG(system.cpu.total.pct), max_cpu = MAX(system.cpu.total.pct), avg_mem = AVG(system.memory.used.pct), avg_latency = AVG(http.response.latency_ms) BY ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "query": "FROM ic-metrics | WHERE host.name == ?hostName AND @timestamp >= ?startTime AND @timestamp <= ?endTime | INLINE STATS overall_avg_cpu = AVG(system.cpu.total.pct), overall_avg_latency = AVG(http.response.latency_ms) | STATS avg_cpu = AVG(system.cpu.total.pct), max_cpu = MAX(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms), overall_avg_cpu = VALUES(overall_avg_cpu), overall_avg_latency = VALUES(overall_avg_latency) BY ts_bucket = BUCKET(@timestamp, 5 minutes) | EVAL cpu_anomaly = max_cpu > overall_avg_cpu * 1.5, latency_anomaly = avg_latency > overall_avg_latency * 2 | SORT ts_bucket",
       "params": {
         "hostName": { "type": "string", "description": "Host name to investigate" },
         "startTime": { "type": "date", "description": "Start of investigation window" },
@@ -108,7 +108,7 @@
   {
     "id": "ic-search-similar-incidents",
     "type": "esql",
-    "description": "Search for past incidents with similar patterns. Use this to find historical context for current incidents. Returns matching past incidents with their root causes and resolutions.",
+    "description": "Search past resolved incidents using semantic similarity on root cause analysis (semantic_text field). Returns incidents with similar failure patterns, remediation steps, and involved agents. Useful for finding historical precedents.",
     "tags": ["incident-cortex", "incidents"],
     "configuration": {
       "query": "FROM ic-incidents | WHERE incident.status == \"resolved\" | SORT @timestamp DESC | LIMIT 10",
@@ -118,10 +118,10 @@
   {
     "id": "ic-service-health-overview",
     "type": "esql",
-    "description": "Get a health overview of all services. Use this at the start of an investigation to understand the overall system state. Returns average CPU, latency, and total request counts per service.",
+    "description": "Health overview of all services with ES|QL INLINE STATS fleet-wide comparison. Shows per-service CPU, latency (avg/p99), request counts, and flags services performing worse than 1.5x fleet average.",
     "tags": ["incident-cortex", "overview"],
     "configuration": {
-      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime | STATS avg_cpu = AVG(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms), total_requests = SUM(http.request.count) BY service.name | SORT avg_latency DESC",
+      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime | INLINE STATS fleet_avg_cpu = AVG(system.cpu.total.pct), fleet_avg_latency = AVG(http.response.latency_ms) | STATS avg_cpu = AVG(system.cpu.total.pct), max_cpu = MAX(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms), p99_latency = PERCENTILE(http.response.latency_ms, 99), total_requests = SUM(http.request.count), fleet_avg_cpu = VALUES(fleet_avg_cpu), fleet_avg_latency = VALUES(fleet_avg_latency) BY service.name | EVAL cpu_above_fleet = avg_cpu > fleet_avg_cpu * 1.5, latency_above_fleet = avg_latency > fleet_avg_latency * 2 | SORT avg_latency DESC",
       "params": {
         "startTime": { "type": "date", "description": "Start of window" },
         "endTime": { "type": "date", "description": "End of window" }
@@ -143,10 +143,10 @@
   {
     "id": "ic-deploy-metric-join",
     "type": "esql",
-    "description": "Join deployment events with service metrics using ES|QL LOOKUP JOIN. Correlates deployment timestamps and versions with metric anomalies to determine if a specific deploy caused performance regressions. Returns metrics enriched with deployment version and author.",
+    "description": "ES|QL LOOKUP JOIN: Correlate infrastructure metrics with deployment events by service. Shows CPU, latency (avg/max/p99) per deployment version per 5-minute bucket with deployment author and change description.",
     "tags": ["incident-cortex", "metrics", "deployments", "join"],
     "configuration": {
-      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime AND service.name == ?serviceName | EVAL deployment_service = service.name | LOOKUP JOIN ic-deployments-lookup ON deployment_service | STATS avg_cpu = AVG(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms) BY deployment.version, deployment.author, ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime AND service.name == ?serviceName | EVAL deployment_service = service.name | LOOKUP JOIN ic-deployments-lookup ON deployment_service | STATS avg_cpu = AVG(system.cpu.total.pct), max_cpu = MAX(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms), max_latency = MAX(http.response.latency_ms), p99_latency = PERCENTILE(http.response.latency_ms, 99) BY deployment.version, deployment.author, deployment.changes, ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
       "params": {
         "startTime": { "type": "date", "description": "Start of investigation window" },
         "endTime": { "type": "date", "description": "End of investigation window" },

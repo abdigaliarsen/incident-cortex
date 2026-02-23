@@ -24,6 +24,13 @@ export interface RemediationAction {
   status: "pending" | "approved" | "rejected";
 }
 
+export interface RemediationResult {
+  actionId: string;
+  toolId: string;
+  success: boolean;
+  docId: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "agent";
@@ -79,7 +86,8 @@ export type SSEEventType =
   | "thinking_complete"
   | "message_chunk"
   | "message_complete"
-  | "round_complete";
+  | "round_complete"
+  | "sub_agent_call";
 
 export interface SSEEvent {
   type: SSEEventType;
@@ -91,6 +99,7 @@ export interface SSEEvent {
   result?: string;
   chunk?: string;
   message?: string;
+  sub_agent_id?: string;
 }
 
 export interface StreamingStatus {

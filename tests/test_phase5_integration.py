@@ -40,6 +40,26 @@ class TestA2AIntegration:
             )
             assert resp.status_code == 200, f"A2A card for {agent_id} not accessible: {resp.status_code}"
 
+    def test_triage_instructions_reference_specialists(self, kibana_url, kibana_headers):
+        """Triage agent instructions should reference all 3 specialist agents for A2A."""
+        resp = requests.get(
+            f"{kibana_url}/api/agent_builder/agents",
+            headers=kibana_headers,
+        )
+        assert resp.status_code == 200
+        agents = resp.json().get("results", resp.json() if isinstance(resp.json(), list) else [])
+        triage = next((a for a in agents if a["id"] == "incident-cortex-triage"), None)
+        assert triage is not None, "Triage agent not found"
+        instructions = triage.get("configuration", {}).get("instructions", "")
+        for agent_id in [
+            "incident-cortex-log-analyzer",
+            "incident-cortex-metrics",
+            "incident-cortex-security",
+        ]:
+            assert agent_id in instructions, (
+                f"Triage instructions don't reference {agent_id}"
+            )
+
 
 class TestMCPServer:
     def test_mcp_initialize(self, kibana_url, kibana_headers):

@@ -548,6 +548,62 @@ def generate_threat_intel() -> list[dict]:
     return docs
 
 
+def generate_resolved_incidents() -> list[dict]:
+    """Generate historical resolved incidents for semantic similarity search."""
+    return [
+        {
+            "@timestamp": "2026-02-15T10:30:00.000Z",
+            "incident.id": "IC-2026-001",
+            "incident.severity": "P1",
+            "incident.status": "resolved",
+            "incident.title": "Payment service cascade failure after deployment",
+            "incident.root_cause": "Deployment v2.3.5 of payment-service introduced a connection pool exhaustion bug. The new payment provider integration held connections open without timeout, causing upstream services (api-gateway, notification-service) to fail with UpstreamTimeoutException. Resolved by rolling back to v2.3.4.",
+            "incident.remediation": "Rolled back payment-service to v2.3.4. Added connection pool timeout of 30s. Created Jira ticket for proper fix.",
+            "incident.agents_involved": ["triage", "log-analyzer", "metrics"],
+        },
+        {
+            "@timestamp": "2026-02-10T08:15:00.000Z",
+            "incident.id": "IC-2026-002",
+            "incident.severity": "P2",
+            "incident.status": "resolved",
+            "incident.title": "Brute force attack from Eastern European botnet",
+            "incident.root_cause": "Coordinated brute-force login attempts from IP range 203.0.113.0/24 targeting user-service authentication endpoint. Over 5000 attempts in 30 minutes. No successful breaches detected but caused elevated CPU on auth servers.",
+            "incident.remediation": "Blocked IP range 203.0.113.0/24 at WAF level. Enabled rate limiting on /auth/login endpoint. Forced password reset for accounts with failed attempts.",
+            "incident.agents_involved": ["triage", "security"],
+        },
+        {
+            "@timestamp": "2026-02-05T16:00:00.000Z",
+            "incident.id": "IC-2026-003",
+            "incident.severity": "P2",
+            "incident.status": "resolved",
+            "incident.title": "Memory leak in inventory-service causing OOM kills",
+            "incident.root_cause": "Memory leak in inventory-service cache layer. Redis connection objects were not being returned to pool after timeout errors. Memory grew linearly until OOM kill at 90% utilization.",
+            "incident.remediation": "Restarted affected pods. Deployed hotfix v1.8.3 with proper connection cleanup in finally blocks. Added memory usage alerting at 70% threshold.",
+            "incident.agents_involved": ["triage", "metrics"],
+        },
+        {
+            "@timestamp": "2026-01-28T11:45:00.000Z",
+            "incident.id": "IC-2026-004",
+            "incident.severity": "P1",
+            "incident.status": "resolved",
+            "incident.title": "Database connection storm after config change",
+            "incident.root_cause": "Configuration change reduced database connection pool from 50 to 5 connections per pod. Under normal load this was sufficient, but during peak traffic all connections were exhausted causing 500 errors across payment-service and user-service.",
+            "incident.remediation": "Reverted config change. Set connection pool to 100 with 30s idle timeout. Added load testing gate to config change pipeline.",
+            "incident.agents_involved": ["triage", "log-analyzer", "metrics"],
+        },
+        {
+            "@timestamp": "2026-01-20T09:30:00.000Z",
+            "incident.id": "IC-2026-005",
+            "incident.severity": "P3",
+            "incident.status": "resolved",
+            "incident.title": "SSL certificate expiry causing intermittent 502s",
+            "incident.root_cause": "Internal service mesh SSL certificate expired on 3 of 10 nodes. Affected nodes returned 502 errors intermittently when load balancer routed to them. Certificate auto-renewal cron job had been disabled during maintenance.",
+            "incident.remediation": "Manually renewed certificates on affected nodes. Re-enabled auto-renewal cron. Added certificate expiry monitoring with 30-day warning threshold.",
+            "incident.agents_involved": ["triage", "log-analyzer"],
+        },
+    ]
+
+
 def main():
     es = Elasticsearch(
         os.environ["ELASTICSEARCH_URL"],
@@ -565,7 +621,7 @@ def main():
         all_mappings = json.load(f)
 
     # Create indices (delete if exists for idempotency)
-    print("[1/7] Creating indices...")
+    print("[1/8] Creating indices...")
     for index_name, index_config in all_mappings.items():
         if es.indices.exists(index=index_name):
             es.indices.delete(index=index_name)
@@ -574,19 +630,19 @@ def main():
         print(f"  Created index: {index_name}")
 
     # Generate data
-    print("\n[2/7] Generating logs...")
+    print("\n[2/8] Generating logs...")
     logs = generate_logs()
 
-    print("[3/7] Generating metrics...")
+    print("[3/8] Generating metrics...")
     metrics = generate_metrics()
 
-    print("[4/7] Generating security alerts...")
+    print("[4/8] Generating security alerts...")
     security = generate_security_alerts()
 
-    print("[5/7] Generating deployments...")
+    print("[5/8] Generating deployments...")
     deployments = generate_deployments()
 
-    print("[6/7] Generating threat intelligence...")
+    print("[6/8] Generating threat intelligence...")
     threat_intel = generate_threat_intel()
 
     # Bulk index
@@ -594,7 +650,11 @@ def main():
         for doc in docs:
             yield {"_index": index, "_source": doc}
 
-    print("\n[7/7] Indexing data...")
+    print("[7/8] Generating resolved incidents...")
+    resolved_incidents = generate_resolved_incidents()
+    print(f"  Resolved incidents generated: {len(resolved_incidents)}")
+
+    print("\n[8/8] Indexing data...")
 
     indexed, errors = bulk(es, make_actions("ic-logs", logs), refresh="wait_for")
     print(f"  Logs indexed: {indexed} (errors: {len(errors)})")
@@ -617,6 +677,30 @@ def main():
         request_timeout=300,
     )
     print(f"  Threat intel indexed: {indexed} (errors: {len(errors)})")
+
+    # Recreate ic-incidents with semantic_text mapping for similarity search
+    print("  Recreating ic-incidents with semantic_text mapping...")
+    if es.indices.exists(index="ic-incidents"):
+        es.indices.delete(index="ic-incidents")
+    es.indices.create(index="ic-incidents", body={
+        "mappings": {
+            "properties": {
+                "@timestamp": {"type": "date"},
+                "incident.id": {"type": "keyword"},
+                "incident.severity": {"type": "keyword"},
+                "incident.status": {"type": "keyword"},
+                "incident.title": {"type": "text"},
+                "incident.root_cause": {"type": "semantic_text"},
+                "incident.remediation": {"type": "text"},
+                "incident.agents_involved": {"type": "keyword"},
+                "incident.timeline": {"type": "nested"},
+            }
+        }
+    })
+    print("  Indexing resolved incidents (semantic_text -- may take a minute for ELSER)...")
+    for doc in resolved_incidents:
+        es.index(index="ic-incidents", document=doc, request_timeout=120)
+    print(f"  Resolved incidents indexed: {len(resolved_incidents)}")
 
     # Verify counts
     print("\n=== Final Counts ===")

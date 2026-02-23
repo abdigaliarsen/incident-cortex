@@ -76,7 +76,7 @@
         "incident.severity": { "type": "keyword" },
         "incident.status": { "type": "keyword" },
         "incident.title": { "type": "text" },
-        "incident.root_cause": { "type": "text" },
+        "incident.root_cause": { "type": "semantic_text" },
         "incident.remediation": { "type": "text" },
         "incident.agents_involved": { "type": "keyword" },
         "incident.timeline": { "type": "nested" }

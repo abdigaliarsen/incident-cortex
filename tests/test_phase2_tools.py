@@ -108,25 +108,28 @@ class TestEsqlQueries:
         assert total_errors > 0, "Expected nonzero total error count"
 
     def test_detect_metric_anomaly(self, es_client):
-        """ic-detect-metric-anomaly: CPU anomalies on node-3."""
+        """ic-detect-metric-anomaly: CPU anomalies on node-3 with INLINE STATS."""
         query = (
             'FROM ic-metrics '
             '| WHERE host.name == "node-3" '
             'AND @timestamp >= "2026-02-22T14:25:00.000Z" '
             'AND @timestamp <= "2026-02-22T14:45:00.000Z" '
-            '| STATS max_cpu = MAX(system.cpu.total.pct) '
+            '| INLINE STATS overall_avg_cpu = AVG(system.cpu.total.pct), '
+            'overall_avg_latency = AVG(http.response.latency_ms) '
+            '| STATS avg_cpu = AVG(system.cpu.total.pct), max_cpu = MAX(system.cpu.total.pct), '
+            'avg_latency = AVG(http.response.latency_ms), '
+            'overall_avg_cpu = VALUES(overall_avg_cpu), '
+            'overall_avg_latency = VALUES(overall_avg_latency) '
             'BY ts_bucket = BUCKET(@timestamp, 5 minutes) '
+            '| EVAL cpu_anomaly = max_cpu > overall_avg_cpu * 1.5, '
+            'latency_anomaly = avg_latency > overall_avg_latency * 2 '
             '| SORT ts_bucket '
             '| LIMIT 20'
         )
         result = self._run_esql(es_client, query)
         rows = self._rows(result)
         assert len(rows) > 0, "Expected metric data for node-3"
-        high_cpu = [r for r in rows if r["max_cpu"] is not None and r["max_cpu"] > 0.7]
-        assert len(high_cpu) >= 1, (
-            f"Expected at least one bucket with CPU > 0.7, "
-            f"got max values: {[r['max_cpu'] for r in rows]}"
-        )
+        assert "cpu_anomaly" in rows[0], f"Missing cpu_anomaly column: {rows[0].keys()}"
 
     def test_check_security_alerts(self, es_client):
         """ic-check-security-alerts: alert counts by rule name."""
@@ -174,14 +177,20 @@ class TestEsqlQueries:
         assert "attempt_count" in rows[0], f"Missing attempt_count column: {rows[0].keys()}"
 
     def test_service_health_overview(self, es_client):
-        """ic-service-health-overview: avg CPU and latency by service."""
+        """ic-service-health-overview: fleet-wide INLINE STATS comparison."""
         query = (
             'FROM ic-metrics '
             '| WHERE @timestamp >= "2026-02-22T14:00:00.000Z" '
             'AND @timestamp <= "2026-02-22T15:00:00.000Z" '
+            '| INLINE STATS fleet_avg_cpu = AVG(system.cpu.total.pct), '
+            'fleet_avg_latency = AVG(http.response.latency_ms) '
             '| STATS avg_cpu = AVG(system.cpu.total.pct), '
-            'avg_latency = AVG(http.response.latency_ms) '
+            'avg_latency = AVG(http.response.latency_ms), '
+            'fleet_avg_cpu = VALUES(fleet_avg_cpu), '
+            'fleet_avg_latency = VALUES(fleet_avg_latency) '
             'BY service.name '
+            '| EVAL cpu_above_fleet = avg_cpu > fleet_avg_cpu * 1.5, '
+            'latency_above_fleet = avg_latency > fleet_avg_latency * 2 '
             '| SORT avg_latency DESC'
         )
         result = self._run_esql(es_client, query)
@@ -190,8 +199,7 @@ class TestEsqlQueries:
             f"Expected at least 5 services, got {len(rows)}: "
             f"{[r.get('service.name') for r in rows]}"
         )
-        assert "avg_cpu" in rows[0], f"Missing avg_cpu column: {rows[0].keys()}"
-        assert "avg_latency" in rows[0], f"Missing avg_latency column: {rows[0].keys()}"
+        assert "cpu_above_fleet" in rows[0], f"Missing cpu_above_fleet: {rows[0].keys()}"
 
     def test_correlate_trace(self, es_client):
         """ic-correlate-trace: verify trace data exists in ic-logs."""

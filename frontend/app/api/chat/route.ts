@@ -69,6 +69,14 @@ function syntheticSSEFromJSON(
         result: tc.result,
       });
     }
+
+    // Detect sub-agent delegation (tool_id matching agent IDs)
+    if (step.type === "tool_call" && step.tool_id?.startsWith("incident-cortex-")) {
+      events.push({
+        type: "sub_agent_call",
+        sub_agent_id: step.tool_id,
+      });
+    }
   }
 
   events.push({

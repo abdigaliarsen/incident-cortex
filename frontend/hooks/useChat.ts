@@ -118,6 +118,15 @@ export function useChat() {
               }
               break;
 
+            case "sub_agent_call":
+              if (event.sub_agent_id) {
+                setStreamingStatus({
+                  currentPhase: "calling",
+                  currentTool: `Delegating to ${event.sub_agent_id.replace("incident-cortex-", "")}`,
+                });
+              }
+              break;
+
             case "message_chunk":
               if (event.chunk) {
                 setStreamingStatus({ currentPhase: "streaming" });
