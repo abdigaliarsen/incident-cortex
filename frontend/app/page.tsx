@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { AgentId, AgentStatus, TimelineEvent } from "@/lib/types";
+import { TOOL_LABELS } from "@/lib/constants";
 import { useChat } from "@/hooks/useChat";
 import { useDetailsPanel } from "@/hooks/useDetailsPanel";
 import { AgentPanel } from "@/components/panels/AgentPanel";
@@ -42,7 +43,7 @@ export default function Home() {
           events.push({
             id: `${msg.id}-${tc.toolId}`,
             timestamp: msg.timestamp,
-            label: tc.toolId,
+            label: TOOL_LABELS[tc.toolId] ?? tc.toolId,
             type: tc.toolId.includes("security") || tc.toolId.includes("ip")
               ? "security"
               : tc.toolId.includes("metric") || tc.toolId.includes("health")
@@ -64,7 +65,6 @@ export default function Home() {
         activeAgent={activeAgent}
         agentStatuses={agentStatuses}
         onAgentClick={showAgent}
-        onAgentSelect={setActiveAgent}
       />
       <ChatPanel
         messages={messages}

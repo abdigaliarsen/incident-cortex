@@ -195,18 +195,19 @@ test.describe("Command Center — Full Investigation (slow)", () => {
     await expect(chatPanel).toContainText(/error|payment|500|spike/i);
 
     // Should show tool call badges
-    const toolBadges = chatPanel.locator("button", { hasText: /^ic-/ });
+    const toolBadges = chatPanel.locator("[data-tool-id]");
     const badgeCount = await toolBadges.count();
     expect(badgeCount).toBeGreaterThan(0);
 
     // Click a tool badge to view details in the right panel
-    const firstBadgeText = await toolBadges.first().textContent();
-    await toolBadges.first().click();
+    const firstBadge = toolBadges.first();
+    const firstToolId = await firstBadge.getAttribute("data-tool-id");
+    await firstBadge.click();
     const detailsPanel = page.getByTestId("details-panel");
     // Details panel should show the tool ID and a "Back to timeline" link
     await expect(detailsPanel.getByText("Back to timeline")).toBeVisible();
-    if (firstBadgeText) {
-      await expect(detailsPanel.getByText(firstBadgeText)).toBeVisible();
+    if (firstToolId) {
+      await expect(detailsPanel.getByText(firstToolId)).toBeVisible();
     }
   });
 });
