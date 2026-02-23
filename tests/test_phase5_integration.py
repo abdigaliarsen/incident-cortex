@@ -17,7 +17,7 @@ class TestA2AIntegration:
         assert data["protocolVersion"] == "0.3.0"
 
     def test_a2a_card_lists_all_skills(self, kibana_url, kibana_headers):
-        """A2A agent card should list all 10 tools as skills."""
+        """A2A agent card should list all 12 tools as skills."""
         resp = requests.get(
             f"{kibana_url}/api/agent_builder/a2a/incident-cortex-triage.json",
             headers=kibana_headers,
@@ -25,7 +25,7 @@ class TestA2AIntegration:
         assert resp.status_code == 200
         data = resp.json()
         skill_ids = [s["id"] for s in data.get("skills", [])]
-        assert len(skill_ids) == 10, f"Expected 10 skills, got {len(skill_ids)}: {skill_ids}"
+        assert len(skill_ids) == 12, f"Expected 12 skills, got {len(skill_ids)}: {skill_ids}"
 
     def test_a2a_specialist_cards_accessible(self, kibana_url, kibana_headers):
         """All specialist agent A2A cards should be accessible."""
