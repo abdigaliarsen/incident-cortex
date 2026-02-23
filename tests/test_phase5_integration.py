@@ -116,7 +116,11 @@ class TestTriageInvestigation:
         )
         assert resp.status_code == 200
         data = resp.json()
-        message = str(data.get("message", data.get("output", "")))
+        # Response is nested: data["response"]["message"]
+        if "response" in data and isinstance(data["response"], dict):
+            message = data["response"].get("message", "")
+        else:
+            message = str(data.get("message", data.get("output", "")))
         message_lower = message.lower()
         assert any(
             term in message_lower for term in ["error", "exception", "spike"]

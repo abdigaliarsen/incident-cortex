@@ -75,6 +75,13 @@ class TestAgentToolAssignments:
             assert tool in tool_ids, f"Security Analyst missing tool {tool}"
 
 
+def _extract_message(data: dict) -> str:
+    """Extract message from converse API response (nested under response.message)."""
+    if "response" in data and isinstance(data["response"], dict):
+        return data["response"].get("message", "")
+    return data.get("message", data.get("output", ""))
+
+
 class TestAgentConverse:
     """Test that agents respond via the converse API. These are slow (LLM calls)."""
 
@@ -90,8 +97,8 @@ class TestAgentConverse:
             timeout=120,
         )
         assert resp.status_code == 200, f"Converse failed: {resp.status_code} {resp.text[:200]}"
-        data = resp.json()
-        assert "message" in data or "output" in data, f"No message in response: {list(data.keys())}"
+        message = _extract_message(resp.json())
+        assert len(message) > 50, f"Response too short: {message[:100]}"
 
     @pytest.mark.slow
     def test_log_analyzer_responds(self, kibana_url, kibana_headers):
@@ -105,6 +112,8 @@ class TestAgentConverse:
             timeout=120,
         )
         assert resp.status_code == 200, f"Converse failed: {resp.status_code}"
+        message = _extract_message(resp.json())
+        assert len(message) > 50, f"Response too short: {message[:100]}"
 
     @pytest.mark.slow
     def test_metrics_responds(self, kibana_url, kibana_headers):
@@ -118,6 +127,8 @@ class TestAgentConverse:
             timeout=120,
         )
         assert resp.status_code == 200, f"Converse failed: {resp.status_code}"
+        message = _extract_message(resp.json())
+        assert len(message) > 50, f"Response too short: {message[:100]}"
 
     @pytest.mark.slow
     def test_security_responds(self, kibana_url, kibana_headers):
@@ -131,3 +142,5 @@ class TestAgentConverse:
             timeout=120,
         )
         assert resp.status_code == 200, f"Converse failed: {resp.status_code}"
+        message = _extract_message(resp.json())
+        assert len(message) > 50, f"Response too short: {message[:100]}"
