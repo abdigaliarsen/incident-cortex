@@ -74,9 +74,13 @@ class TestDemoScenarioFindings:
     def test_used_tools(self, investigation_response):
         """Verify the agent actually used ES|QL tools during investigation."""
         steps = investigation_response.get("steps", [])
-        tool_calls = []
+        tool_ids = []
         for step in steps:
+            # Steps with type=tool_call have tool_id at step level
+            if step.get("type") == "tool_call" and step.get("tool_id"):
+                tool_ids.append(step["tool_id"])
+            # Also check nested tool_calls format
             for tc in step.get("tool_calls", []):
-                tool_calls.append(tc.get("tool_id", ""))
-        ic_tools = [t for t in tool_calls if t.startswith("ic-")]
+                tool_ids.append(tc.get("tool_id", ""))
+        ic_tools = [t for t in tool_ids if t.startswith("ic-")]
         assert len(ic_tools) >= 2, f"Expected at least 2 ic-* tool calls, got {len(ic_tools)}: {ic_tools}"

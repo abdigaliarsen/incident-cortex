@@ -62,6 +62,13 @@ export interface ConverseResponse {
 
 export interface ConverseStep {
   type: string;
+  // type=tool_call steps have these at step level
+  tool_id?: string;
+  params?: Record<string, string>;
+  tool_call_id?: string;
+  results?: { type: string; data: Record<string, unknown> }[];
+  reasoning?: string;
+  // Fallback nested format
   tool_calls?: {
     tool_id: string;
     tool_params: Record<string, string>;

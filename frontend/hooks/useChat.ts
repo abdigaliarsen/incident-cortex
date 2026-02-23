@@ -38,6 +38,15 @@ export function useChat() {
 
         const toolCalls: ToolCall[] = [];
         for (const step of data.steps || []) {
+          // Steps with type=tool_call have tool_id at step level
+          if (step.type === "tool_call" && step.tool_id) {
+            toolCalls.push({
+              toolId: step.tool_id,
+              status: "complete",
+              result: String(step.results?.[0]?.data?.esql ?? JSON.stringify(step.params)),
+            });
+          }
+          // Also handle nested tool_calls format
           for (const tc of step.tool_calls || []) {
             toolCalls.push({
               toolId: tc.tool_id,
