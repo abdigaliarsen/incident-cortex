@@ -1,6 +1,7 @@
 import type { ChatMessage as ChatMessageType } from "@/lib/types";
 import { AgentBadge } from "@/components/shared/AgentBadge";
 import { TOOL_LABELS } from "@/lib/constants";
+import { RemediationCard } from "./RemediationCard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
@@ -123,6 +124,9 @@ export function ChatMessage({ message, onToolClick }: ChatMessageProps) {
               ))}
             </div>
           </div>
+        )}
+        {message.remediationActions && message.remediationActions.length > 0 && (
+          <RemediationCard actions={message.remediationActions} />
         )}
         <div className="text-[10px] text-[#69707D] mt-1">
           {message.timestamp.toLocaleTimeString()}

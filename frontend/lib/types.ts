@@ -17,6 +17,13 @@ export interface AgentInfo {
   description: string;
 }
 
+export interface RemediationAction {
+  id: string;
+  label: string;
+  toolId: string;
+  status: "pending" | "approved" | "rejected";
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "agent";
@@ -24,6 +31,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   toolCalls?: ToolCall[];
+  remediationActions?: RemediationAction[];
 }
 
 export interface ToolCall {

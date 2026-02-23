@@ -72,3 +72,11 @@ export const TOOL_LABELS: Record<string, string> = {
   "block-ip": "Block Suspicious IP",
   "index-incident-report": "Index Incident Report",
 };
+
+export const REMEDIATION_TOOL_IDS = new Set([
+  "rollback-deployment",
+  "block-ip",
+  "notify-slack",
+  "create-jira-ticket",
+  "index-incident-report",
+]);
