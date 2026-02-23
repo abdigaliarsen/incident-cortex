@@ -1,0 +1,103 @@
+{
+  "logs-incident-cortex": {
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "service.name": { "type": "keyword" },
+        "log.level": { "type": "keyword" },
+        "message": { "type": "text" },
+        "trace.id": { "type": "keyword" },
+        "host.name": { "type": "keyword" },
+        "error.type": { "type": "keyword" },
+        "error.stack_trace": { "type": "text" }
+      }
+    }
+  },
+  "metrics-incident-cortex": {
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "host.name": { "type": "keyword" },
+        "service.name": { "type": "keyword" },
+        "system.cpu.total.pct": { "type": "float" },
+        "system.memory.used.pct": { "type": "float" },
+        "http.response.latency_ms": { "type": "float" },
+        "http.response.status_code": { "type": "integer" },
+        "http.request.count": { "type": "long" }
+      }
+    }
+  },
+  "security-alerts-incident-cortex": {
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "event.category": { "type": "keyword" },
+        "event.action": { "type": "keyword" },
+        "source.ip": { "type": "ip" },
+        "destination.ip": { "type": "ip" },
+        "user.name": { "type": "keyword" },
+        "alert.severity": { "type": "keyword" },
+        "alert.rule_name": { "type": "keyword" },
+        "message": { "type": "text" }
+      }
+    }
+  },
+  "deployments-incident-cortex": {
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "deployment.version": { "type": "keyword" },
+        "deployment.service": { "type": "keyword" },
+        "deployment.author": { "type": "keyword" },
+        "deployment.status": { "type": "keyword" },
+        "deployment.commit_sha": { "type": "keyword" },
+        "deployment.changes": { "type": "text" }
+      }
+    }
+  },
+  "threat-intel-incident-cortex": {
+    "mappings": {
+      "properties": {
+        "indicator.ip": { "type": "ip" },
+        "indicator.type": { "type": "keyword" },
+        "threat.description": { "type": "semantic_text" },
+        "threat.severity": { "type": "keyword" },
+        "threat.actor": { "type": "keyword" },
+        "cve.id": { "type": "keyword" },
+        "last_seen": { "type": "date" }
+      }
+    }
+  },
+  "incidents-incident-cortex": {
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "incident.id": { "type": "keyword" },
+        "incident.severity": { "type": "keyword" },
+        "incident.status": { "type": "keyword" },
+        "incident.title": { "type": "text" },
+        "incident.root_cause": { "type": "text" },
+        "incident.remediation": { "type": "text" },
+        "incident.agents_involved": { "type": "keyword" },
+        "incident.timeline": { "type": "nested" }
+      }
+    }
+  },
+  "incident-cortex-notifications": {
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "channel": { "type": "keyword" },
+        "severity": { "type": "keyword" },
+        "message": { "type": "text" },
+        "type": { "type": "keyword" },
+        "ticket.id": { "type": "keyword" },
+        "ticket.url": { "type": "keyword" },
+        "action": { "type": "keyword" },
+        "target.ip": { "type": "ip" },
+        "deployment.version": { "type": "keyword" },
+        "deployment.service": { "type": "keyword" }
+      }
+    }
+  }
+}
