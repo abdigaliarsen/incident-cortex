@@ -1,14 +1,23 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { ChatMessage, AgentId, ConverseResponse, ToolCall } from "@/lib/types";
-import { sendMessage as apiSendMessage } from "@/lib/api";
+import type {
+  ChatMessage,
+  AgentId,
+  ToolCall,
+  StreamingStatus,
+  RemediationAction,
+} from "@/lib/types";
+import { streamMessage } from "@/lib/api";
+import { REMEDIATION_TOOL_IDS } from "@/lib/constants";
 
 export function useChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string>();
-  const [activeAgent, setActiveAgent] = useState<AgentId>("incident-cortex-triage");
+  const [activeAgent, setActiveAgent] =
+    useState<AgentId>("incident-cortex-triage");
+  const [streamingStatus, setStreamingStatus] = useState<StreamingStatus>({});
   const idCounter = useRef(0);
 
   const nextId = useCallback(() => {
@@ -27,55 +36,148 @@ export function useChat() {
       setMessages((prev) => [...prev, userMsg]);
       setLoading(true);
 
+      const placeholderId = nextId();
+      const placeholder: ChatMessage = {
+        id: placeholderId,
+        role: "agent",
+        agentId: activeAgent,
+        content: "",
+        timestamp: new Date(),
+        toolCalls: [],
+        remediationActions: [],
+      };
+      setMessages((prev) => [...prev, placeholder]);
+
       try {
-        const data: ConverseResponse = await apiSendMessage(
+        for await (const event of streamMessage(
           text,
           activeAgent,
           conversationId
-        );
+        )) {
+          switch (event.type) {
+            case "conversation_id_set":
+              if (event.conversation_id) {
+                setConversationId(event.conversation_id);
+              }
+              break;
 
-        setConversationId(data.conversation_id);
+            case "reasoning":
+              setStreamingStatus({ currentPhase: "reasoning" });
+              break;
 
-        const toolCalls: ToolCall[] = [];
-        for (const step of data.steps || []) {
-          // Steps with type=tool_call have tool_id at step level
-          if (step.type === "tool_call" && step.tool_id) {
-            toolCalls.push({
-              toolId: step.tool_id,
-              status: "complete",
-              result: String(step.results?.[0]?.data?.esql ?? JSON.stringify(step.params)),
-            });
-          }
-          // Also handle nested tool_calls format
-          for (const tc of step.tool_calls || []) {
-            toolCalls.push({
-              toolId: tc.tool_id,
-              status: "complete",
-              result: tc.result,
-            });
+            case "tool_call":
+              if (event.tool_id) {
+                setStreamingStatus({
+                  currentPhase: "calling",
+                  currentTool: event.tool_id,
+                });
+                setMessages((prev) =>
+                  prev.map((m) => {
+                    if (m.id !== placeholderId) return m;
+                    const tc: ToolCall = {
+                      toolId: event.tool_id!,
+                      status: "running",
+                      params: event.params,
+                    };
+                    const toolCalls = [...(m.toolCalls || []), tc];
+
+                    // Check if this is a remediation tool
+                    let remediationActions = m.remediationActions || [];
+                    if (REMEDIATION_TOOL_IDS.has(event.tool_id!)) {
+                      const action: RemediationAction = {
+                        id: event.tool_call_id || event.tool_id!,
+                        label:
+                          event.tool_id!
+                            .replace(/-/g, " ")
+                            .replace(/\b\w/g, (c) => c.toUpperCase()),
+                        toolId: event.tool_id!,
+                        status: "pending",
+                      };
+                      remediationActions = [...remediationActions, action];
+                    }
+
+                    return { ...m, toolCalls, remediationActions };
+                  })
+                );
+              }
+              break;
+
+            case "tool_result":
+              if (event.tool_id) {
+                setMessages((prev) =>
+                  prev.map((m) => {
+                    if (m.id !== placeholderId) return m;
+                    const toolCalls = (m.toolCalls || []).map((tc) =>
+                      tc.toolId === event.tool_id && tc.status === "running"
+                        ? { ...tc, status: "complete" as const, result: event.result }
+                        : tc
+                    );
+                    return { ...m, toolCalls };
+                  })
+                );
+              }
+              break;
+
+            case "message_chunk":
+              if (event.chunk) {
+                setStreamingStatus({ currentPhase: "streaming" });
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === placeholderId
+                      ? { ...m, content: m.content + event.chunk }
+                      : m
+                  )
+                );
+              }
+              break;
+
+            case "message_complete":
+              if (event.message) {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === placeholderId
+                      ? { ...m, content: event.message! }
+                      : m
+                  )
+                );
+              }
+              break;
+
+            case "round_complete":
+              setStreamingStatus({});
+              break;
           }
         }
 
-        const agentMsg: ChatMessage = {
-          id: nextId(),
-          role: "agent",
-          agentId: activeAgent,
-          content: data.response?.message || "No response",
-          timestamp: new Date(),
-          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-        };
-        setMessages((prev) => [...prev, agentMsg]);
+        // Clean up empty arrays on the placeholder
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== placeholderId) return m;
+            return {
+              ...m,
+              toolCalls: m.toolCalls?.length ? m.toolCalls : undefined,
+              remediationActions: m.remediationActions?.length
+                ? m.remediationActions
+                : undefined,
+            };
+          })
+        );
       } catch (err) {
-        const errorMsg: ChatMessage = {
-          id: nextId(),
-          role: "agent",
-          agentId: activeAgent,
-          content: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === placeholderId
+              ? {
+                  ...m,
+                  content: `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+                  toolCalls: m.toolCalls?.length ? m.toolCalls : undefined,
+                  remediationActions: undefined,
+                }
+              : m
+          )
+        );
       } finally {
         setLoading(false);
+        setStreamingStatus({});
       }
     },
     [activeAgent, conversationId, nextId]
@@ -88,5 +190,6 @@ export function useChat() {
     setActiveAgent,
     sendMessage,
     conversationId,
+    streamingStatus,
   };
 }
