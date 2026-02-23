@@ -12,7 +12,7 @@ import { DetailsPanel } from "@/components/panels/DetailsPanel";
 export default function Home() {
   const { messages, loading, activeAgent, setActiveAgent, sendMessage, streamingStatus } =
     useChat();
-  const { view, showTimeline, showTool, showAgent } = useDetailsPanel();
+  const { view, showTimeline, showTool, showAgent, showA2A } = useDetailsPanel();
   const [mobilePanel, setMobilePanel] = useState<"chat" | "agents" | "details">("chat");
 
   const agentStatuses = useMemo<Record<AgentId, AgentStatus>>(() => {
@@ -45,9 +45,11 @@ export default function Home() {
             id: `${msg.id}-${tc.toolId}`,
             timestamp: msg.timestamp,
             label: TOOL_LABELS[tc.toolId] ?? tc.toolId,
-            type: tc.toolId.includes("security") || tc.toolId.includes("ip")
+            type: tc.toolId.includes("notify") || tc.toolId.includes("jira") || tc.toolId.includes("rollback") || tc.toolId.includes("block-ip") || tc.toolId.includes("incident-report")
+              ? "remediation"
+              : tc.toolId.includes("security") || tc.toolId.includes("ip") || tc.toolId.includes("threat")
               ? "security"
-              : tc.toolId.includes("metric") || tc.toolId.includes("health")
+              : tc.toolId.includes("metric") || tc.toolId.includes("health") || tc.toolId.includes("join")
               ? "metric"
               : tc.toolId.includes("deploy")
               ? "deployment"
@@ -100,6 +102,10 @@ export default function Home() {
           activeAgent={activeAgent}
           agentStatuses={agentStatuses}
           onAgentClick={handleAgentClick}
+          onA2AClick={() => {
+            showA2A(activeAgent);
+            setMobilePanel("details");
+          }}
         />
       </div>
       <div className={`${mobilePanel === "chat" ? "flex" : "hidden"} md:flex flex-1 min-w-0`}>

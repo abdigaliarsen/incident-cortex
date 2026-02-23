@@ -47,7 +47,7 @@ test.describe("Command Center — Layout", () => {
     await page.goto("/");
     const panel = page.getByTestId("agent-panel");
     await expect(panel.getByText("Elastic Agent Builder")).toBeVisible();
-    await expect(panel.getByText(/10 ES\|QL tools/)).toBeVisible();
+    await expect(panel.getByText(/17 tools/)).toBeVisible();
   });
 });
 

@@ -6,12 +6,14 @@ interface AgentPanelProps {
   activeAgent: AgentId;
   agentStatuses: Record<AgentId, AgentStatus>;
   onAgentClick: (agent: AgentInfo) => void;
+  onA2AClick?: () => void;
 }
 
 export function AgentPanel({
   activeAgent,
   agentStatuses,
   onAgentClick,
+  onA2AClick,
 }: AgentPanelProps) {
   return (
     <div
@@ -62,11 +64,20 @@ export function AgentPanel({
           );
         })}
       </div>
-      <div className="p-4 border-t border-[#343741]">
-        <div className="text-[10px] text-[#69707D] space-y-1">
+      <div className="p-3 border-t border-[#343741] space-y-2">
+        <div className="text-[10px] text-[#69707D]">
           <p>Elastic Agent Builder</p>
-          <p>10 ES|QL tools &middot; A2A &middot; MCP</p>
+          <p>17 tools &middot; 5 workflows</p>
         </div>
+        <button
+          onClick={onA2AClick}
+          className="w-full text-left text-[10px] px-2 py-1.5 rounded bg-[#1D1E24] hover:bg-[#343741] transition-colors flex items-center gap-2"
+        >
+          <span className="text-[#4ECDC4]">A2A</span>
+          <span className="text-[#45B7D1]">MCP</span>
+          <span className="text-[#F7DC6F]">API</span>
+          <span className="text-[#69707D] ml-auto">View &rarr;</span>
+        </button>
       </div>
     </div>
   );

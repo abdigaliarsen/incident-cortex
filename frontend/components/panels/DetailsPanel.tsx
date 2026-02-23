@@ -2,6 +2,7 @@ import type { DetailView, TimelineEvent } from "@/lib/types";
 import { IncidentTimeline } from "@/components/details/IncidentTimeline";
 import { ToolCallView } from "@/components/details/ToolCallView";
 import { AgentDetail } from "@/components/details/AgentDetail";
+import { A2ACard } from "@/components/details/A2ACard";
 
 interface DetailsPanelProps {
   view: DetailView;
@@ -32,6 +33,7 @@ export function DetailsPanel({
           <ToolCallView toolCall={view.toolCall} onBack={onShowTimeline} />
         )}
         {view.type === "agent" && <AgentDetail agent={view.agent} />}
+        {view.type === "a2a" && <A2ACard agentId={view.agentId} />}
       </div>
     </div>
   );

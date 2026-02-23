@@ -127,5 +127,31 @@
         "endTime": { "type": "date", "description": "End of window" }
       }
     }
+  },
+  {
+    "id": "ic-threat-intel-lookup",
+    "type": "esql",
+    "description": "Search threat intelligence for a suspicious IP address using semantic search. Queries the threat intel knowledge base to find known threat actors, attack patterns, and CVEs associated with an IP. Uses semantic_text for intelligent matching against threat descriptions.",
+    "tags": ["incident-cortex", "security", "threat-intel"],
+    "configuration": {
+      "query": "FROM ic-threat-intel | WHERE indicator.ip == ?suspiciousIp | KEEP indicator.ip, indicator.type, threat.description, threat.severity, threat.actor, cve.id, last_seen | LIMIT 10",
+      "params": {
+        "suspiciousIp": { "type": "string", "description": "IP address to check against threat intelligence database" }
+      }
+    }
+  },
+  {
+    "id": "ic-deploy-metric-join",
+    "type": "esql",
+    "description": "Join deployment events with service metrics using ES|QL LOOKUP JOIN. Correlates deployment timestamps and versions with metric anomalies to determine if a specific deploy caused performance regressions. Returns metrics enriched with deployment version and author.",
+    "tags": ["incident-cortex", "metrics", "deployments", "join"],
+    "configuration": {
+      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime AND service.name == ?serviceName | EVAL deployment_service = service.name | LOOKUP JOIN ic-deployments-lookup ON deployment_service | STATS avg_cpu = AVG(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms) BY deployment.version, deployment.author, ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "params": {
+        "startTime": { "type": "date", "description": "Start of investigation window" },
+        "endTime": { "type": "date", "description": "End of investigation window" },
+        "serviceName": { "type": "string", "description": "Service name to correlate deployments with metrics" }
+      }
+    }
   }
 ]

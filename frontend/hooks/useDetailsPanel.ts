@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { DetailView, ToolCall, AgentInfo } from "@/lib/types";
+import type { DetailView, ToolCall, AgentInfo, AgentId } from "@/lib/types";
 
 export function useDetailsPanel() {
   const [view, setView] = useState<DetailView>({ type: "timeline" });
@@ -15,6 +15,10 @@ export function useDetailsPanel() {
     (agent: AgentInfo) => setView({ type: "agent", agent }),
     []
   );
+  const showA2A = useCallback(
+    (agentId: AgentId) => setView({ type: "a2a", agentId }),
+    []
+  );
 
-  return { view, showTimeline, showTool, showAgent };
+  return { view, showTimeline, showTool, showAgent, showA2A };
 }

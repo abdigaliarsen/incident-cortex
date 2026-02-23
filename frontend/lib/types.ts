@@ -52,7 +52,8 @@ export interface TimelineEvent {
 export type DetailView =
   | { type: "timeline" }
   | { type: "tool"; toolCall: ToolCall }
-  | { type: "agent"; agent: AgentInfo };
+  | { type: "agent"; agent: AgentInfo }
+  | { type: "a2a"; agentId: AgentId };
 
 export interface ConverseResponse {
   conversation_id: string;
