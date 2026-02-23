@@ -69,7 +69,7 @@ jobs:
           cache-dependency-path: scripts/requirements.txt
 
       - name: Install dependencies
-        run: pip install -r scripts/requirements.txt pytest
+        run: pip install -r scripts/requirements.txt pytest requests
 
       - name: Write .env
         env:

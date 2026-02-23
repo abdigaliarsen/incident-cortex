@@ -124,7 +124,7 @@ test.describe("Command Center — Agent Interaction", () => {
     ).toBeVisible();
   });
 
-  test("shows typing indicator after sending a message", async ({ page }) => {
+  test("shows typing indicator after sending a message @slow", async ({ page }) => {
     await page.goto("/");
     const input = page.getByPlaceholder(
       "Describe the incident or ask a question..."
@@ -136,7 +136,7 @@ test.describe("Command Center — Agent Interaction", () => {
     });
   });
 
-  test("input is disabled while agent is responding", async ({ page }) => {
+  test("input is disabled while agent is responding @slow", async ({ page }) => {
     await page.goto("/");
     const input = page.getByPlaceholder(
       "Describe the incident or ask a question..."
