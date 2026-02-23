@@ -72,9 +72,11 @@ export function ChatPanel({
             </div>
           </div>
         )}
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} onToolClick={onToolClick} />
-        ))}
+        {messages.map((msg) => {
+          // Hide empty placeholder messages (agent is still thinking)
+          if (msg.role === "agent" && !msg.content && !msg.toolCalls?.length) return null;
+          return <ChatMessage key={msg.id} message={msg} onToolClick={onToolClick} />;
+        })}
         {loading && <TypingIndicator agentId={activeAgent} streamingStatus={streamingStatus} />}
       </div>
       <ChatInput onSend={onSend} disabled={loading} />
