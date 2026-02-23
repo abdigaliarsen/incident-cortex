@@ -8,12 +8,9 @@ test.describe("Command Center — Layout", () => {
     await expect(page.getByTestId("details-panel")).toBeVisible();
   });
 
-  test("shows page title", async ({ page }) => {
+  test("shows active agent in chat header", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText("Incident Cortex")).toBeVisible();
-    await expect(
-      page.getByText("Multi-agent SRE & Security Command Center")
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Triage Agent" })).toBeVisible();
   });
 
   test("shows all 4 agents in left panel", async ({ page }) => {
