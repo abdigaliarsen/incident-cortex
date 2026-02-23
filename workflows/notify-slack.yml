@@ -1,0 +1,23 @@
+name: notify-slack
+description: Send incident notification to Slack (simulated via ES index)
+inputs:
+  - id: incident_summary
+    type: string
+    description: Summary of the incident
+  - id: severity
+    type: string
+    description: Severity level (P1-P4)
+  - id: channel
+    type: string
+    description: Slack channel name
+steps:
+  - id: index_notification
+    action: core/elasticsearch/index_document
+    params:
+      index: ic-notifications
+      document:
+        "@timestamp": "{{ now }}"
+        channel: "{{ inputs.channel }}"
+        severity: "{{ inputs.severity }}"
+        message: "{{ inputs.incident_summary }}"
+        type: slack_notification

@@ -1,0 +1,131 @@
+[
+  {
+    "id": "ic-find-error-spike",
+    "type": "esql",
+    "description": "Detect error rate spikes in application logs. Use this when investigating service errors or outages. Returns error counts bucketed by minute for the specified service and time range.",
+    "tags": ["incident-cortex", "logs"],
+    "configuration": {
+      "query": "FROM ic-logs | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime AND service.name == ?serviceName AND log.level == \"error\" | STATS error_count = COUNT(*) BY ts_bucket = BUCKET(@timestamp, 1 minute) | SORT ts_bucket",
+      "params": {
+        "startTime": { "type": "date", "description": "Start of investigation window (ISO format)" },
+        "endTime": { "type": "date", "description": "End of investigation window (ISO format)" },
+        "serviceName": { "type": "string", "description": "Name of the service to investigate" }
+      }
+    }
+  },
+  {
+    "id": "ic-correlate-trace",
+    "type": "esql",
+    "description": "Follow a distributed trace across all services. Use this to understand the full request path and find where failures originated. Returns all log entries for a trace ID sorted by timestamp.",
+    "tags": ["incident-cortex", "logs", "traces"],
+    "configuration": {
+      "query": "FROM ic-logs | WHERE trace.id == ?traceId | SORT @timestamp | LIMIT 100",
+      "params": {
+        "traceId": { "type": "string", "description": "The trace ID to follow across services" }
+      }
+    }
+  },
+  {
+    "id": "ic-find-first-occurrence",
+    "type": "esql",
+    "description": "Find when an error type first appeared in a service. Use this to pinpoint the exact moment an issue started. Returns the earliest timestamp and context for the error.",
+    "tags": ["incident-cortex", "logs"],
+    "configuration": {
+      "query": "FROM ic-logs | WHERE service.name == ?serviceName AND log.level == \"error\" AND @timestamp >= ?startTime | SORT @timestamp | LIMIT 5",
+      "params": {
+        "serviceName": { "type": "string", "description": "Service name to search" },
+        "startTime": { "type": "date", "description": "Start searching from this time" }
+      }
+    }
+  },
+  {
+    "id": "ic-detect-metric-anomaly",
+    "type": "esql",
+    "description": "Detect CPU, memory, or latency anomalies on a specific host. Use this when investigating infrastructure performance issues. Returns metric values bucketed by 5-minute intervals with high values highlighted.",
+    "tags": ["incident-cortex", "metrics"],
+    "configuration": {
+      "query": "FROM ic-metrics | WHERE host.name == ?hostName AND @timestamp >= ?startTime AND @timestamp <= ?endTime | STATS avg_cpu = AVG(system.cpu.total.pct), max_cpu = MAX(system.cpu.total.pct), avg_mem = AVG(system.memory.used.pct), avg_latency = AVG(http.response.latency_ms) BY ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "params": {
+        "hostName": { "type": "string", "description": "Host name to investigate" },
+        "startTime": { "type": "date", "description": "Start of investigation window" },
+        "endTime": { "type": "date", "description": "End of investigation window" }
+      }
+    }
+  },
+  {
+    "id": "ic-correlate-deploy-metric",
+    "type": "esql",
+    "description": "Correlate deployment events with metric anomalies. Use this to determine if a deployment caused a performance regression. Shows host metrics by 5-minute buckets for the specified service.",
+    "tags": ["incident-cortex", "metrics", "deployments"],
+    "configuration": {
+      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime AND service.name == ?serviceName | STATS avg_cpu = AVG(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms) BY host.name, ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "params": {
+        "startTime": { "type": "date", "description": "Start of investigation window" },
+        "endTime": { "type": "date", "description": "End of investigation window" },
+        "serviceName": { "type": "string", "description": "Service name to correlate" }
+      }
+    }
+  },
+  {
+    "id": "ic-check-security-alerts",
+    "type": "esql",
+    "description": "Query security alerts for a specific time range. Use this when investigating potential security incidents. Returns alert counts grouped by rule name, severity, and 5-minute time buckets.",
+    "tags": ["incident-cortex", "security"],
+    "configuration": {
+      "query": "FROM ic-security-alerts | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime | STATS alert_count = COUNT(*) BY alert.rule_name, alert.severity, ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "params": {
+        "startTime": { "type": "date", "description": "Start of investigation window" },
+        "endTime": { "type": "date", "description": "End of investigation window" }
+      }
+    }
+  },
+  {
+    "id": "ic-investigate-ip",
+    "type": "esql",
+    "description": "Investigate a suspicious IP address across security alerts. Use this to understand the full activity pattern of a potential attacker. Returns event counts bucketed by 5-minute intervals for the specified source IP.",
+    "tags": ["incident-cortex", "security"],
+    "configuration": {
+      "query": "FROM ic-security-alerts | WHERE source.ip == ?suspiciousIp AND @timestamp >= ?startTime | STATS attempt_count = COUNT(*) BY ts_bucket = BUCKET(@timestamp, 5 minutes) | SORT ts_bucket",
+      "params": {
+        "suspiciousIp": { "type": "string", "description": "IP address to investigate" },
+        "startTime": { "type": "date", "description": "Start of investigation window" }
+      }
+    }
+  },
+  {
+    "id": "ic-get-deployments",
+    "type": "esql",
+    "description": "List recent deployments for a service. Use this to check if a recent deployment might have caused the incident. Returns deployment history with versions, authors, and timestamps.",
+    "tags": ["incident-cortex", "deployments"],
+    "configuration": {
+      "query": "FROM ic-deployments | WHERE deployment.service == ?serviceName AND @timestamp >= ?startTime | SORT @timestamp DESC | LIMIT 10",
+      "params": {
+        "serviceName": { "type": "string", "description": "Service to check deployments for" },
+        "startTime": { "type": "date", "description": "Look back from this time" }
+      }
+    }
+  },
+  {
+    "id": "ic-search-similar-incidents",
+    "type": "esql",
+    "description": "Search for past incidents with similar patterns. Use this to find historical context for current incidents. Returns matching past incidents with their root causes and resolutions.",
+    "tags": ["incident-cortex", "incidents"],
+    "configuration": {
+      "query": "FROM ic-incidents | WHERE incident.status == \"resolved\" | SORT @timestamp DESC | LIMIT 10",
+      "params": {}
+    }
+  },
+  {
+    "id": "ic-service-health-overview",
+    "type": "esql",
+    "description": "Get a health overview of all services. Use this at the start of an investigation to understand the overall system state. Returns average CPU, latency, and total request counts per service.",
+    "tags": ["incident-cortex", "overview"],
+    "configuration": {
+      "query": "FROM ic-metrics | WHERE @timestamp >= ?startTime AND @timestamp <= ?endTime | STATS avg_cpu = AVG(system.cpu.total.pct), avg_latency = AVG(http.response.latency_ms), total_requests = SUM(http.request.count) BY service.name | SORT avg_latency DESC",
+      "params": {
+        "startTime": { "type": "date", "description": "Start of window" },
+        "endTime": { "type": "date", "description": "End of window" }
+      }
+    }
+  }
+]

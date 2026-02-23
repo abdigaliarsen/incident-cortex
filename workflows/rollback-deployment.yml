@@ -1,0 +1,24 @@
+name: rollback-deployment
+description: Rollback a deployment to previous version (simulated via ES index)
+inputs:
+  - id: service
+    type: string
+    description: Service to rollback
+  - id: from_version
+    type: string
+    description: Current version to rollback from
+  - id: to_version
+    type: string
+    description: Previous version to rollback to
+steps:
+  - id: index_rollback
+    action: core/elasticsearch/index_document
+    params:
+      index: ic-notifications
+      document:
+        "@timestamp": "{{ now }}"
+        type: deployment_rollback
+        action: rollback
+        deployment.service: "{{ inputs.service }}"
+        deployment.version: "{{ inputs.to_version }}"
+        message: "Rolling back {{ inputs.service }} from {{ inputs.from_version }} to {{ inputs.to_version }}"

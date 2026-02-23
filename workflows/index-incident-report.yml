@@ -1,0 +1,31 @@
+name: index-incident-report
+description: Store incident report in Elasticsearch
+inputs:
+  - id: incident_id
+    type: string
+    description: Unique incident identifier
+  - id: title
+    type: string
+    description: Incident title
+  - id: root_cause
+    type: string
+    description: Root cause analysis
+  - id: severity
+    type: string
+    description: Severity level (P1-P4)
+  - id: remediation_actions
+    type: string
+    description: Actions taken to remediate
+steps:
+  - id: store_report
+    action: core/elasticsearch/index_document
+    params:
+      index: ic-incidents
+      document:
+        "@timestamp": "{{ now }}"
+        incident.id: "{{ inputs.incident_id }}"
+        incident.title: "{{ inputs.title }}"
+        incident.root_cause: "{{ inputs.root_cause }}"
+        incident.severity: "{{ inputs.severity }}"
+        incident.remediation: "{{ inputs.remediation_actions }}"
+        incident.status: resolved
