@@ -30,6 +30,7 @@ export interface ToolCall {
   toolId: string;
   status: "running" | "complete" | "error";
   result?: string;
+  params?: Record<string, string>;
 }
 
 export interface TimelineEvent {
@@ -58,6 +59,34 @@ export interface ConverseResponse {
     llm_calls: number;
     model: string;
   };
+}
+
+export type SSEEventType =
+  | "conversation_id_set"
+  | "reasoning"
+  | "tool_call"
+  | "tool_progress"
+  | "tool_result"
+  | "thinking_complete"
+  | "message_chunk"
+  | "message_complete"
+  | "round_complete";
+
+export interface SSEEvent {
+  type: SSEEventType;
+  conversation_id?: string;
+  reasoning?: string;
+  tool_id?: string;
+  tool_call_id?: string;
+  params?: Record<string, string>;
+  result?: string;
+  chunk?: string;
+  message?: string;
+}
+
+export interface StreamingStatus {
+  currentTool?: string;
+  currentPhase?: "reasoning" | "calling" | "streaming";
 }
 
 export interface ConverseStep {
