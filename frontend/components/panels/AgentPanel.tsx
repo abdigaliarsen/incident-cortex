@@ -16,7 +16,7 @@ export function AgentPanel({
   return (
     <div
       data-testid="agent-panel"
-      className="w-60 bg-[#25262E] border-r border-[#343741] flex flex-col"
+      className="w-full md:w-60 bg-[#25262E] border-r border-[#343741] flex flex-col"
     >
       <div className="p-4 border-b border-[#343741]">
         <h2 className="text-sm font-semibold text-[#DFE5EF] tracking-wide uppercase">

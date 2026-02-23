@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
-import type { AgentId, AgentStatus, TimelineEvent } from "@/lib/types";
-import { TOOL_LABELS } from "@/lib/constants";
+import { useMemo, useState } from "react";
+import type { AgentId, AgentStatus, AgentInfo, TimelineEvent } from "@/lib/types";
+import { AGENTS, TOOL_LABELS } from "@/lib/constants";
 import { useChat } from "@/hooks/useChat";
 import { useDetailsPanel } from "@/hooks/useDetailsPanel";
 import { AgentPanel } from "@/components/panels/AgentPanel";
@@ -10,9 +10,10 @@ import { ChatPanel } from "@/components/panels/ChatPanel";
 import { DetailsPanel } from "@/components/panels/DetailsPanel";
 
 export default function Home() {
-  const { messages, loading, activeAgent, sendMessage, streamingStatus } =
+  const { messages, loading, activeAgent, setActiveAgent, sendMessage, streamingStatus } =
     useChat();
   const { view, showTimeline, showTool, showAgent } = useDetailsPanel();
+  const [mobilePanel, setMobilePanel] = useState<"chat" | "agents" | "details">("chat");
 
   const agentStatuses = useMemo<Record<AgentId, AgentStatus>>(() => {
     const statuses: Record<AgentId, AgentStatus> = {
@@ -59,30 +60,65 @@ export default function Home() {
     return events;
   }, [messages]);
 
+  const handleAgentClick = (agent: AgentInfo) => {
+    setActiveAgent(agent.id);
+    showAgent(agent);
+    setMobilePanel("chat");
+  };
+
+  const handleToolClick = (toolId: string) => {
+    const allToolCalls = messages.flatMap((m) => m.toolCalls || []);
+    const tc = allToolCalls.find((t) => t.toolId === toolId);
+    if (tc) {
+      showTool(tc);
+      setMobilePanel("details");
+    }
+  };
+
   return (
-    <div className="h-screen flex">
-      <AgentPanel
-        activeAgent={activeAgent}
-        agentStatuses={agentStatuses}
-        onAgentClick={showAgent}
-      />
-      <ChatPanel
-        messages={messages}
-        loading={loading}
-        activeAgent={activeAgent}
-        streamingStatus={streamingStatus}
-        onSend={sendMessage}
-        onToolClick={(toolId) => {
-          const allToolCalls = messages.flatMap((m) => m.toolCalls || []);
-          const tc = allToolCalls.find((t) => t.toolId === toolId);
-          if (tc) showTool(tc);
-        }}
-      />
-      <DetailsPanel
-        view={view}
-        timelineEvents={timelineEvents}
-        onShowTimeline={showTimeline}
-      />
+    <div className="h-screen flex flex-col md:flex-row">
+      {/* Mobile navigation bar */}
+      <div className="md:hidden flex border-b border-[#343741] bg-[#25262E]">
+        {(["agents", "chat", "details"] as const).map((panel) => (
+          <button
+            key={panel}
+            onClick={() => setMobilePanel(panel)}
+            className={`flex-1 py-3 text-xs font-medium uppercase tracking-wide transition-colors ${
+              mobilePanel === panel
+                ? "text-[#0077CC] border-b-2 border-[#0077CC]"
+                : "text-[#69707D]"
+            }`}
+          >
+            {panel === "agents" ? `${AGENTS[activeAgent].shortName}` : panel === "chat" ? "Chat" : "Details"}
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop: always visible. Mobile: controlled by mobilePanel */}
+      <div className={`${mobilePanel === "agents" ? "flex" : "hidden"} md:flex flex-col`}>
+        <AgentPanel
+          activeAgent={activeAgent}
+          agentStatuses={agentStatuses}
+          onAgentClick={handleAgentClick}
+        />
+      </div>
+      <div className={`${mobilePanel === "chat" ? "flex" : "hidden"} md:flex flex-1 min-w-0`}>
+        <ChatPanel
+          messages={messages}
+          loading={loading}
+          activeAgent={activeAgent}
+          streamingStatus={streamingStatus}
+          onSend={sendMessage}
+          onToolClick={handleToolClick}
+        />
+      </div>
+      <div className={`${mobilePanel === "details" ? "flex" : "hidden"} md:flex flex-col`}>
+        <DetailsPanel
+          view={view}
+          timelineEvents={timelineEvents}
+          onShowTimeline={showTimeline}
+        />
+      </div>
     </div>
   );
 }
