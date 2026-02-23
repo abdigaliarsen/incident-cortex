@@ -1,0 +1,26 @@
+name: create-jira-ticket
+description: Create a Jira ticket for incident tracking (simulated via ES index)
+inputs:
+  - id: title
+    type: string
+    description: Ticket title
+  - id: description
+    type: string
+    description: Ticket description
+  - id: severity
+    type: string
+    description: Severity level (P1-P4)
+  - id: assignee
+    type: string
+    description: Assignee username
+steps:
+  - id: index_ticket
+    action: core/elasticsearch/index_document
+    params:
+      index: ic-notifications
+      document:
+        "@timestamp": "{{ now }}"
+        type: jira_ticket
+        severity: "{{ inputs.severity }}"
+        message: "{{ inputs.title }}: {{ inputs.description }}"
+        ticket.id: "IC-{{ now | date: '%s' }}"

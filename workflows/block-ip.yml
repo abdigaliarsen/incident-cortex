@@ -1,0 +1,23 @@
+name: block-ip
+description: Block a suspicious IP address (simulated via ES index)
+inputs:
+  - id: ip_address
+    type: string
+    description: IP address to block
+  - id: reason
+    type: string
+    description: Reason for blocking
+  - id: duration
+    type: string
+    description: Block duration (e.g., 24h, permanent)
+steps:
+  - id: index_block
+    action: core/elasticsearch/index_document
+    params:
+      index: ic-notifications
+      document:
+        "@timestamp": "{{ now }}"
+        type: ip_block
+        action: block_ip
+        target.ip: "{{ inputs.ip_address }}"
+        message: "Blocked IP {{ inputs.ip_address }}: {{ inputs.reason }} (duration: {{ inputs.duration }})"
