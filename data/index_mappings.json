@@ -1,5 +1,5 @@
 {
-  "logs-incident-cortex": {
+  "ic-logs": {
     "mappings": {
       "properties": {
         "@timestamp": { "type": "date" },
@@ -13,7 +13,7 @@
       }
     }
   },
-  "metrics-incident-cortex": {
+  "ic-metrics": {
     "mappings": {
       "properties": {
         "@timestamp": { "type": "date" },
@@ -27,7 +27,7 @@
       }
     }
   },
-  "security-alerts-incident-cortex": {
+  "ic-security-alerts": {
     "mappings": {
       "properties": {
         "@timestamp": { "type": "date" },
@@ -42,7 +42,7 @@
       }
     }
   },
-  "deployments-incident-cortex": {
+  "ic-deployments": {
     "mappings": {
       "properties": {
         "@timestamp": { "type": "date" },
@@ -55,7 +55,7 @@
       }
     }
   },
-  "threat-intel-incident-cortex": {
+  "ic-threat-intel": {
     "mappings": {
       "properties": {
         "indicator.ip": { "type": "ip" },
@@ -68,7 +68,7 @@
       }
     }
   },
-  "incidents-incident-cortex": {
+  "ic-incidents": {
     "mappings": {
       "properties": {
         "@timestamp": { "type": "date" },
@@ -83,7 +83,7 @@
       }
     }
   },
-  "incident-cortex-notifications": {
+  "ic-notifications": {
     "mappings": {
       "properties": {
         "@timestamp": { "type": "date" },

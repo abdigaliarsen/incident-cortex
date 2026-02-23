@@ -11,8 +11,8 @@ class TestIndicesExist:
         assert es_client.indices.exists(index=index), f"Index {index} does not exist"
 
     def test_logs_mapping_has_required_fields(self, es_client):
-        mapping = es_client.indices.get_mapping(index="logs-incident-cortex")
-        props = mapping["logs-incident-cortex"]["mappings"]["properties"]
+        mapping = es_client.indices.get_mapping(index="ic-logs")
+        props = mapping["ic-logs"]["mappings"]["properties"]
         assert "@timestamp" in props
         assert "service.name" in props or "service" in props
         assert "log.level" in props or "log" in props
@@ -21,15 +21,15 @@ class TestIndicesExist:
         assert "host.name" in props or "host" in props
 
     def test_metrics_mapping_has_required_fields(self, es_client):
-        mapping = es_client.indices.get_mapping(index="metrics-incident-cortex")
-        props = mapping["metrics-incident-cortex"]["mappings"]["properties"]
+        mapping = es_client.indices.get_mapping(index="ic-metrics")
+        props = mapping["ic-metrics"]["mappings"]["properties"]
         assert "@timestamp" in props
         assert "host.name" in props or "host" in props
         assert "system.cpu.total.pct" in props or "system" in props
 
     def test_security_mapping_has_required_fields(self, es_client):
-        mapping = es_client.indices.get_mapping(index="security-alerts-incident-cortex")
-        props = mapping["security-alerts-incident-cortex"]["mappings"]["properties"]
+        mapping = es_client.indices.get_mapping(index="ic-security-alerts")
+        props = mapping["ic-security-alerts"]["mappings"]["properties"]
         assert "@timestamp" in props
         assert "source.ip" in props or "source" in props
         assert "alert.severity" in props or "alert" in props
@@ -39,23 +39,23 @@ class TestDataCounts:
     """Synthetic data volumes within expected ranges."""
 
     def test_logs_count(self, es_client):
-        count = es_client.count(index="logs-incident-cortex")["count"]
+        count = es_client.count(index="ic-logs")["count"]
         assert 8_000 <= count <= 15_000, f"Logs count {count} outside range 8K-15K"
 
     def test_metrics_count(self, es_client):
-        count = es_client.count(index="metrics-incident-cortex")["count"]
+        count = es_client.count(index="ic-metrics")["count"]
         assert 12_000 <= count <= 18_000, f"Metrics count {count} outside range 12K-18K"
 
     def test_security_alerts_count(self, es_client):
-        count = es_client.count(index="security-alerts-incident-cortex")["count"]
+        count = es_client.count(index="ic-security-alerts")["count"]
         assert 150 <= count <= 500, f"Security count {count} outside range 150-500"
 
     def test_deployments_count(self, es_client):
-        count = es_client.count(index="deployments-incident-cortex")["count"]
+        count = es_client.count(index="ic-deployments")["count"]
         assert 15 <= count <= 30, f"Deployments count {count} outside range 15-30"
 
     def test_threat_intel_count(self, es_client):
-        count = es_client.count(index="threat-intel-incident-cortex")["count"]
+        count = es_client.count(index="ic-threat-intel")["count"]
         assert 30 <= count <= 80, f"Threat intel count {count} outside range 30-80"
 
 
@@ -64,7 +64,7 @@ class TestIncidentScenarioSignals:
 
     def test_payment_service_errors_in_incident_window(self, es_client):
         result = es_client.search(
-            index="logs-incident-cortex",
+            index="ic-logs",
             body={
                 "query": {
                     "bool": {
@@ -89,7 +89,7 @@ class TestIncidentScenarioSignals:
 
     def test_cpu_spike_on_node3(self, es_client):
         result = es_client.search(
-            index="metrics-incident-cortex",
+            index="ic-metrics",
             body={
                 "query": {
                     "bool": {
@@ -114,7 +114,7 @@ class TestIncidentScenarioSignals:
 
     def test_brute_force_from_known_ip(self, es_client):
         result = es_client.search(
-            index="security-alerts-incident-cortex",
+            index="ic-security-alerts",
             body={
                 "query": {
                     "bool": {
@@ -130,7 +130,7 @@ class TestIncidentScenarioSignals:
 
     def test_deployment_v241_exists(self, es_client):
         result = es_client.search(
-            index="deployments-incident-cortex",
+            index="ic-deployments",
             body={
                 "query": {
                     "bool": {
@@ -147,7 +147,7 @@ class TestIncidentScenarioSignals:
 
     def test_all_five_services_present(self, es_client):
         result = es_client.search(
-            index="logs-incident-cortex",
+            index="ic-logs",
             body={"aggs": {"services": {"terms": {"field": "service.name", "size": 10}}}},
             size=0,
         )
@@ -157,7 +157,7 @@ class TestIncidentScenarioSignals:
 
     def test_all_ten_hosts_present(self, es_client):
         result = es_client.search(
-            index="metrics-incident-cortex",
+            index="ic-metrics",
             body={"aggs": {"hosts": {"terms": {"field": "host.name", "size": 15}}}},
             size=0,
         )

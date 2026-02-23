@@ -47,13 +47,13 @@ def incident_window():
 
 
 INDICES = [
-    "logs-incident-cortex",
-    "metrics-incident-cortex",
-    "security-alerts-incident-cortex",
-    "deployments-incident-cortex",
-    "threat-intel-incident-cortex",
-    "incidents-incident-cortex",
-    "incident-cortex-notifications",
+    "ic-logs",
+    "ic-metrics",
+    "ic-security-alerts",
+    "ic-deployments",
+    "ic-threat-intel",
+    "ic-incidents",
+    "ic-notifications",
 ]
 
 SERVICES = [
