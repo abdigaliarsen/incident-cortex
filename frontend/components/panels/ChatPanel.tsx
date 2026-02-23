@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import type { ChatMessage as ChatMessageType, AgentId } from "@/lib/types";
+import type { ChatMessage as ChatMessageType, AgentId, StreamingStatus } from "@/lib/types";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { TypingIndicator } from "@/components/chat/TypingIndicator";
@@ -10,6 +10,7 @@ interface ChatPanelProps {
   messages: ChatMessageType[];
   loading: boolean;
   activeAgent: AgentId;
+  streamingStatus?: StreamingStatus;
   onSend: (message: string) => void;
   onToolClick?: (toolId: string) => void;
 }
@@ -18,6 +19,7 @@ export function ChatPanel({
   messages,
   loading,
   activeAgent,
+  streamingStatus,
   onSend,
   onToolClick,
 }: ChatPanelProps) {
@@ -73,7 +75,7 @@ export function ChatPanel({
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} onToolClick={onToolClick} />
         ))}
-        {loading && <TypingIndicator agentId={activeAgent} />}
+        {loading && <TypingIndicator agentId={activeAgent} streamingStatus={streamingStatus} />}
       </div>
       <ChatInput onSend={onSend} disabled={loading} />
     </div>

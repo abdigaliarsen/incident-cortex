@@ -6,14 +6,12 @@ interface AgentPanelProps {
   activeAgent: AgentId;
   agentStatuses: Record<AgentId, AgentStatus>;
   onAgentClick: (agent: AgentInfo) => void;
-  onAgentSelect: (agentId: AgentId) => void;
 }
 
 export function AgentPanel({
   activeAgent,
   agentStatuses,
   onAgentClick,
-  onAgentSelect,
 }: AgentPanelProps) {
   return (
     <div
@@ -33,7 +31,6 @@ export function AgentPanel({
             <button
               key={agent.id}
               onClick={() => {
-                onAgentSelect(agent.id);
                 onAgentClick(agent);
               }}
               className={`w-full text-left rounded-lg p-3 transition-colors ${
